@@ -1,0 +1,95 @@
+'Adds a hyperlink of an email's GUID to a open task
+'Based on http://denihow.com/can-i-create-a-link-to-a-specific-email-message-in-outlook/
+Sub AddHyperlinkToMail()
+    Dim objApp As Outlook.Application
+    Dim objMail As Outlook.MailItem
+    Dim objTask As Outlook.TaskItem
+    Dim doClipboard As New DataObject
+    Dim objText As String
+    Dim strArray() As String
+    'Ensure code is run further only if 1 item is selected
+    If Application.ActiveExplorer.Selection.Count <> 1 Then
+        MsgBox ("Select one and ONLY one message.")
+        Exit Sub
+    End If
+    'Exit if mail item is not selected to copy link
+    If Not (TypeOf Application.ActiveExplorer.Selection.Item(1) Is Outlook.MailItem) Then
+        MsgBox ("Mail Item not selected")
+        Exit Sub
+    End If
+    Set objMail = Application.ActiveExplorer.Selection.Item(1)
+    'Create the text in a particular format
+    doClipboard.SetText "outlook:" + objMail.EntryID + "*|||*<MESSAGE: " + objMail.Subject + " (" + objMail.SenderName + ")>"
+    doClipboard.PutInClipboard
+    'Exit if a task is not opened
+    If Not (TypeOf Application.ActiveInspector.CurrentItem Is Outlook.TaskItem) Then
+        MsgBox "Macro works only in a Open Task"
+        Exit Sub
+    End If
+    Set objTask = Application.ActiveInspector.CurrentItem
+    doClipboard.GetFromClipboard
+    objText = doClipboard.GetText
+    'Split out the GUID and the text for teh hyperlink
+    strArray() = Split(objText, "*|||*")
+    If UBound(strArray) <> 1 Then
+        MsgBox "GUID Info not cpatured correctly"
+        Exit Sub
+    End If
+    strLink = strArray(0)
+    strLinkText = strArray(1)
+    Set objSel = ActiveInspector.WordEditor.Application.Selection
+    objSel.Hyperlinks.Add objSel.Range, strLink, "", "", strLinkText, ""
+    Set objApp = Nothing
+    Set objMail = Nothing
+    Set objTask = Nothing
+    Set doClipboard = Nothing
+End Sub
+
+'Reply all with attachments
+'Based on http://www.outlookcode.com/codedetail.aspx?id=1228
+Sub ReplyAllWithAttachments()
+    Dim rpl As Outlook.MailItem
+    Dim objApp As Outlook.Application
+    Dim itm As Object
+     
+    Set objApp = Application
+    On Error Resume Next
+    Select Case TypeName(objApp.ActiveWindow)
+        Case "Explorer"
+            Set itm = objApp.ActiveExplorer.Selection.Item(1)
+        Case "Inspector"
+            Set itm = objApp.ActiveInspector.CurrentItem
+    End Select
+    Set objApp = Nothing
+    If Not itm Is Nothing Then
+        Set rpl = itm.ReplyAll
+        'Set format to HTML if RichText to avoid attachments being inserted to the end
+        If rpl.BodyFormat = 3 Then
+            rpl.BodyFormat = olFormatHTML
+        End If
+        CopyAttachments itm, rpl
+        rpl.Display
+    End If
+    Set rpl = Nothing
+    Set itm = Nothing
+End Sub
+
+'Subroutine used by ReplyAllWithAttachments
+'Copies the attachments from the email to a temp location and then attaches to the reply all
+Sub CopyAttachments(objSourceItem, objTargetItem)
+   Set fso = CreateObject("Scripting.FileSystemObject")
+   Set fldTemp = fso.GetSpecialFolder(2) ' TemporaryFolder
+   strPath = fldTemp.Path & "\"
+   For Each objAtt In objSourceItem.Attachments
+        'Exclude in-line images
+        If objAtt <> "Picture (Device Independent Bitmap)" Then
+            strFile = strPath & objAtt.FileName
+            objAtt.SaveAsFile strFile
+            objTargetItem.Attachments.Add strFile, , , objAtt.DisplayName
+            fso.DeleteFile strFile
+        End If
+   Next
+   Set fldTemp = Nothing
+   Set fso = Nothing
+End Sub
+
