@@ -1,0 +1,135 @@
+"---General---
+"Backspace is on
+set bs=2
+"Enable syntax highlighting
+syn on
+"Always show the status line
+set laststatus=2
+"Custom Status line
+set statusline=%F%m%r%h%w\ [FORMAT=%{&ff}]\ [TYPE=%Y]\ [POS=%l,%v][%p%%]
+"Set Font
+if has('gui_running')
+  set guifont=Consolas:h9:cANSI
+endif
+"Enable Autoreload
+set autoread
+"Search along while typing
+set incsearch
+"Case insensitive, but if searching with case then revert to case sensitive
+set ignorecase
+set smartcase 
+"Highlight search term, toggle with a key binding
+set hlsearch!
+"Show the mode
+set showmode
+"Show matching braces
+set showmatch
+"Show line number
+set number
+"Solarized color scheme
+"set background=light
+colorscheme desert
+"Indent new lines based on previous line
+set autoindent
+"Try to determine file type based on name and contents
+filetype indent plugin on
+"Do not retain buffers after closing tab
+set nohidden
+"Better command-line completion
+set wildmenu
+"Fold method
+set foldmethod=indent
+"Spell check
+map <F8> :set spell!<CR>
+set spell spelllang=en
+set spellfile=~/_spellfile.add
+highlight clear SpellBad
+highlight SpellBad term=standout guibg=#ffffff guifg=#000000 
+set nospell!
+"Remove toolbar
+set guioptions-=T
+
+"---Plugins---
+"Plugins list
+"NERDTree, CtrlP, Solarized color scheme
+"NERDTree
+"Map to show/close
+map <C-S-n> :NERDTreeToggle<CR>
+
+"CtrlP
+"Map ctrlp show
+let g:ctrlp_map = '<c-p>'
+"Default to reg ex based search
+let g:ctrlp_regexp = 1
+"Do not change working directory based on open buffer
+let g:ctrlp_working_path_mode = 0 
+
+"---Custom key bindings---
+"Create new tab
+map <C-S-t> :tabnew<CR>
+"Toggle text wrapping
+map <F5> :set wrap!<CR>
+"Toggle search highlight
+nnoremap <F3> :set hlsearch!<CR>
+"Call user defined function list
+map <F7> :call UserDefinedCalls()<CR>
+"Navigate Splits
+nmap <silent> <A-Up> :wincmd k<CR>
+nmap <silent> <A-Down> :wincmd j<CR>
+nmap <silent> <A-Left> :wincmd h<CR>
+nmap <silent> <A-Right> :wincmd l<CR>
+
+"---Custom functions---
+"Main function to call individual user defined functions
+function! UserDefinedCalls()
+	let l:opt = input("SearchAndReplace: 1\nCopy: 2\nFileFormat: 3\n:")
+	if l:opt == 1
+		call SearchAndReplace()
+	elseif l:opt == 2
+		call Copy()
+	elseif l:opt == 3
+		call FileFormat()
+	endif
+endfunction
+
+"Common search and replace commands
+function! SearchAndReplace()
+	execute('redraw!')
+	let l:opt = input("x to 'x',: 1\nx\\ny to xy: 2\n:")
+	if l:opt == 1 
+		execute("%s/^/\'/g\|%s/$/\'\,/g")
+	elseif l:opt == 2
+		execute("%s/\\n//g")
+	endif
+endfunction
+
+function! Copy()
+	execute('redraw!')
+	let l:opt = input("Copy lines containing: 1\nCopy all to clipboard: 2\n:")
+	"Copy the lines which contain a pattern to a register 'a' and then to system clipboard
+	if l:opt == 1
+		let l:pattern = input("Enter pattern\n:")
+		execute('normal qaq')
+		execute('g/' . l:pattern . '/y A') 
+		let @* = @a
+	"Copy all to clipboard
+	elseif l:opt == 2
+		execute('%y*')
+	endif
+endfunction
+
+"Change File Format
+function! FileFormat()
+	execute('redraw!')
+	let l:opt = input("Unix: 1\nDOS: 2\nRemove ^M and convert to unix: 3\n:")
+	"Set format to dos
+	if l:opt == 2
+		execute('update | setlocal ff=dos | w | set ff?')
+	"Set format to unix
+	elseif l:opt == 1
+		execute('update | setlocal ff=unix | w | set ff?')
+	"Remove the ^M characters and convert to unix
+	elseif l:opt == 3
+		execute('update | e ++ff=dos | setlocal ff=unix | w | set ff?')
+	endif
+endfunction
