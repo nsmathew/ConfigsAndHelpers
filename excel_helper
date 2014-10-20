@@ -1,0 +1,104 @@
+Sub GroupedRowColour()
+'
+' GroupedRowColour Macro
+' Applies colour to rows grouped based on the values for a column above and below.
+' Nitin Mathew, 14-Sep-2012
+
+Dim columnForGroup As String 'For input column
+Dim regExInputTest As New VBScript_RegExp_55.RegExp 'RegEx for validating input
+Dim msgBoxRet As Integer
+Dim rowCounter As Integer 'Current row in iteration
+Dim startRow As Integer 'Starting row for current group in iteration
+Dim nextGroupIsColoured As Boolean 'Decides if current group shoudl be coloured or blank
+Dim inputSplitArray() As String
+
+regExInputTest.Pattern = "\b[A-Z]+\b" 'Only valid columns, like A, AC, ABV...
+regExInputTest.IgnoreCase = True
+regExInputTest.Global = True
+rowCounter = 1
+startRow = 1
+nextGroupIsColoured = True
+
+'Get the coloumn to use to group
+columnForGroup = InputBox("Please enter column to group by. Ex: A, BC, ADV...", "Group by Colour", "A")
+inputSplitArray = Split(columnForGroup, " ") 'If input is given with space, split using space and use only 1st value
+columnForGroup = inputSplitArray(0)
+columnForGroup = UCase(columnForGroup)
+
+'Check if the input is a valid column, if not inform user
+If regExInputTest.Test(columnForGroup) = False Then
+    msgBoxRet = MsgBox("Please enter a valid column. Ex: A, BC, ADV...", vbInformation, "Incorrect Input")
+    Exit Sub
+End If
+
+'Switch off screen update for macro run
+Application.ScreenUpdating = False
+
+'Loop through the cells for the input column and each row starting with 1 and ending an empty cell is encountered
+Do While Range(columnForGroup & rowCounter) <> Empty
+    If Range(columnForGroup & rowCounter) <> Range(columnForGroup & rowCounter + 1) Then
+        'If current cell value is different from below cell then apply colour
+        Rows(startRow & ":" & rowCounter).Select
+        'To alternate between coloured and blank rows
+        If nextGroupIsColoured = True Then
+        'Set a colour for the range of rows
+            With Selection.Interior
+                .Pattern = xlSolid
+                .PatternColorIndex = xlAutomatic
+                .ThemeColor = xlThemeColorLight2
+                .TintAndShade = 0.8
+                .PatternTintAndShade = 0
+            End With
+            nextGroupIsColoured = flase
+        ElseIf nextGroupIsColoured = False Then
+        'Set no fill, this will override existing colours in the sheet and ensure only 2 colours in the sheet.
+            With Selection.Interior
+                .Pattern = xlNone
+                .TintAndShade = 0
+                .PatternTintAndShade = 0
+            End With
+            nextGroupIsColoured = True
+        End If
+        rowCounter = rowCounter + 1
+        startRow = rowCounter
+    Else
+        'If the current cell matches the below cell
+        rowCounter = rowCounter + 1
+    End If
+Loop
+
+'Freeze Top Row
+Rows("1:1").Select
+With ActiveWindow
+     .SplitColumn = 0
+     .SplitRow = 1
+End With
+ActiveWindow.FreezePanes = True
+
+'Switch back on the screen update after macro run
+Application.ScreenUpdating = True
+
+'Move to last row
+Rows(rowCounter & ":" & rowCounter).Select
+
+End Sub
+
+Sub InsertEmptyRows()
+'
+' InsertEmptyRows Macro
+' Insert alternating empty rows
+' Nitin Mathew, 2-Jul-2014
+
+Dim rowCounter As Integer
+
+rowCounter = 2
+Range("A1:A10").Select
+Rows(rowCounter & ":" & rowCounter).Select
+Do While Range("A" & rowCounter) <> Empty
+    Rows(rowCounter & ":" & rowCounter).Select
+    Selection.Insert Shift:=xlDown
+    rowCounter = rowCounter + 2
+Loop
+Range("A1:A" & rowCounter - 1).Select
+
+End Sub
