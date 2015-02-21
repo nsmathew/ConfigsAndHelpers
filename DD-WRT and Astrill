@@ -1,0 +1,18 @@
+- Check if router is compatible with DD-WRT @ http://www.dd-wrt.com/wiki/index.php/Supported_Devices
+- If compatible then download the factory-to-ddwrt.bin file from ftp://ftp.dd-wrt.com/stable/ or if not available from 
+ftp://ftp.dd-wrt.com/betas/. Read about the bugs on the builds for the router on the dd-wrt forums.
+- Install the dd-wrt firmware onto your router using http://www.dd-wrt.com/wiki/index.php/Installation. Brief of the steps are below:
+- Login to your webGUI for the router and perform a factory reset
+- Then login back to your router's webGUI and perform a firmware upgrade using the factory-to-ddwrt.bin file
+- Once it shows firware upgrade is complete, perform a hard-reset using the reset button on the router. Usually it is press and hold the reset button while the router is on for about 30 seconds.
+- Once this is done login to router's webGUI which is now at 192.168.1.1 and perform the wireless setup for wifi
+- Before Astrill installation need to set a param in dd-wrt to ensure installation works fine. Goto Administration->Commands in the webGUI and execute the following commands. Reference: http://svn.dd-wrt.com:8000/ticket/1483
+    nvram set no_crossdetect=1
+    nvram commit
+- For astrill installation into the router follow https://members.astrill.com/router-setup.php
+- Once done reboot router and go to webGUI and Status->My Page->Astrill to configure Astrill
+- Basic config will be to select an appropriate server location under VPN and set to start automatically.Then under site filters set 'Tunnel only International Sites' to use VPN only for geo blocked sites.
+
+From http://en.wikipedia.org/wiki/DD-WRT:
+DD-WRT is a Linux-based firmware for wireless routers and wireless access points. It is compatible with several models of routers and access points. DD-WRT is one of the third-party firmwares, which are designed to replace the original firmware on some commercial routers. Alternative firmware may offer features and functionality sets that differ from the original firmware it is replacing.
+The firmware project's name, DD-WRT, was taken in part from the Linksys WRT54G model router, a successful home router popular in 2002-2004, for which the first replacement firmware was written. "DD" are the German license plate letters for all cars from Dresden, where the "Brainslayers" development team lived. "WRT", also used by the OpenWRT router firmware project, is coming to be a generic acronym for "Wireless RouTer", which may have been Linksys's original meaning.
