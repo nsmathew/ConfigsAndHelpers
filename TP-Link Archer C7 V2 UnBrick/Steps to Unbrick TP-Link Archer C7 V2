@@ -3,10 +3,12 @@
 - Copy the ArcherC7v3_tp_recovery.bin file into the same directory as the TFTPD32 installation. The file name should be 
 ArcherC7v3_tp_recovery.bin
 - Connect the PC to the router using the ethernet port.
-- Set the IP address to 192.168.0.66
+- Set the IP address to 192.168.0.66 for the ethernet adapter on the computer
 - Open the TFTPD32 application, ensure the folder is the one with the recovery file and the interface points to the ethernet interface with the changed IP address.
 - Enter the recovery mode by pressing the hardreset button and then poweron the router while holding the reset button. Release the reset button after 8 seconds.
 - Once the router gets into recovery mode the log window in the TFTPD32 application should show the recovery file transferred to the router and the router should be upgraded with the recovery firmware.
+- Try to open the router's Web page after 5 mins. Login with default credentials, change password and then reboot the router. 
+- Now setup the wireless interfaces, USB, DBS... 
 
 Reference:
 http://www.dd-wrt.com/phpBB2/viewtopic.php?t=275635&postdays=0&postorder=asc&start=21
