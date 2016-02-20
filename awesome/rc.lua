@@ -185,6 +185,24 @@ for s = 1, screen.count() do
     -- Create a tasklist widget
     mytasklist[s] = awful.widget.tasklist(s, awful.widget.tasklist.filter.currenttags, mytasklist.buttons)
 
+    memwidget = wibox.widget.textbox()
+    memtimer = timer({ timeout = 5 })
+    memtimer:connect_signal("timeout", function() 
+	    	totmem = awful.util.pread("free | tr -s ' ' | sed -n 2p | cut -d' ' -f 2")
+		usdmem = awful.util.pread("free | tr -s ' ' | sed -n 2p | cut -d' ' -f 3")
+		usdmempct = tonumber(string.format("%." .. (0) .. "f", usdmem / totmem * 100))
+		memwidget:set_text("|M:" .. usdmempct .. "%")
+	    end)
+    memtimer:start()
+
+    diskwidget = wibox.widget.textbox()
+    disktimer = timer({ timeout = 5 })
+    disktimer:connect_signal("timeout", function()
+	    	homeusg = awful.util.pread("df -h /home | tail -n 1 | tr -s ' ' | cut -d' ' -f 5")
+		rootusg = awful.util.pread("df -h / | tail -n 1 | tr -s ' ' | cut -d' ' -f 5")
+		diskwidget:set_text("|~:" .. homeusg .. "|/:" .. rootusg)
+		end)
+    disktimer:start()
     -- Create the wibox
     mywibox[s] = awful.wibox({ position = "top", screen = s, height = "25" })
 
@@ -198,6 +216,8 @@ for s = 1, screen.count() do
     local right_layout = wibox.layout.fixed.horizontal()
     if s == 1 then right_layout:add(wibox.widget.systray()) end
     right_layout:add(mytextclock)
+    right_layout:add(memwidget)
+    right_layout:add(diskwidget)
     right_layout:add(mylayoutbox[s])
 
     -- Now bring it all together (with the tasklist in the middle)
