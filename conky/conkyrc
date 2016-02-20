@@ -1,0 +1,137 @@
+
+# Added entries from Graysky, https://raw.github.com/graysky2/configs/master/dotfiles/.conkyrc
+# Original lua rings script from http://wlourf.deviantart.com/art/Rings-And-Sectors-Conky-1-1-174493100? 
+
+# set to yes if you want Conky to be forked in the background
+background no
+
+# Use Xft?
+use_xft yes
+
+# Xft font when Xft is enabled
+xftfont DejaVu Sans Condensed:size=8
+
+# Text alpha when using Xft
+xftalpha 0.8
+
+# Print everything to console?
+# out_to_console no
+
+# Update interval in seconds
+update_interval 2.0
+
+# This is the number of times Conky will update before quitting.
+# Set to zero to run forever.
+total_run_times 0
+
+# Create own window instead of using desktop (required in nautilus)
+own_window yes
+
+#The override option makes your window out of control of your window manager
+#own_window_type normal 
+own_window_type desktop 
+
+#To enable real transparency
+own_window_transparent yes
+
+#To enable transperancy
+own_window_hints undecorated,below,sticky,skip_taskbar,skip_pager
+own_window_argb_visual yes
+
+# Use double buffering (reduces flicker, may not work for everyone)
+double_buffer yes
+
+# Minimum size of text area
+minimum_size 610 5
+maximum_width 280
+
+# Draw shades?
+draw_shades no
+
+# Draw outlines?
+draw_outline no
+
+# Draw borders around text
+draw_borders no
+
+# Stippled borders?
+#stippled_borders 8
+
+# border width
+border_width 0 
+
+# Default colors and also border colors
+default_color gray 
+
+# Text alignment, other possible values are commented
+alignment top_left
+
+# Gap between borders of screen and text
+#Dual Monitor Config
+#gap_x 890
+#gap_y 50
+
+# Single Monitor Config
+gap_x 12
+gap_y 30
+
+# Subtract file system buffers from used memory?
+no_buffers yes
+
+# set to yes if you want all text to be in uppercase
+uppercase no
+
+# number of cpu samples to average
+# set to 1 to disable averaging
+cpu_avg_samples 2
+
+# number of net samples to average
+# set to 1 to disable averaging
+net_avg_samples 2
+
+# Force UTF8? note that UTF8 support required XFT
+override_utf8_locale no
+
+# Add spaces to keep things from moving about?  This only affects certain objects.
+use_spacer yes
+
+#Default Size for bar
+default_bar_size 100
+
+#Lua Load
+lua_load /home/nsm09/scripts/rings.lua
+lua_draw_hook_pre conky_main_rings
+
+# stuff after 'TEXT' will be formatted on screen
+
+TEXT
+
+
+
+${goto 70}${time %e} ${time %b}${alignc}${image /home/nsm09/scripts/resources/ALLogo.png -p 112,20-s 64x64}${goto 180}${time %l}:${time %M}:${time %S}
+${goto 80}${time %a}${goto 190}${time %p}
+
+
+
+${alignc}Arch Linux
+${alignc}${color slate grey}WEATHER: ${color }${execi 300 /home/nsm09/scripts/weatherforconky.sh "Singapore"}
+#${alignc}${color slate grey}WEATHER: ${color }${execi 300 /home/nsm09/scripts/weatherforconky.sh "Mangalore"}
+#${alignc}${color slate grey}WEATHER: ${color }${execi 300 /home/nsm09/scripts/weatherforconky.sh "Delhi"}
+${alignc}${color slate grey}KERNEL:${color }$kernel  ${color slate grey}MACHINE TYPE: ${color }${machine}
+${alignc}${color slate grey}HOSTNAME: ${color }$nodename ${color slate grey}USER: ${color }${uid_name ${execi 300 id -u}} 
+${alignc}${color slate grey}UP TIME: ${color }$uptime 
+${alignc}${color slate grey}TOTAL CPU USAGE:${color } ${cpu cpu0}%
+${alignc}${cpugraph 20,130 gray gray}
+
+
+
+
+
+${goto 10}${cpu cpu1}%${goto 80}${cpu cpu2}%${goto 150}${cpu cpu3}%${goto 220}${cpu cpu4}%
+${goto 10}${freq_g 1}GHz${goto 80}${freq_g 2}GHz${goto 150}${freq_g 3}GHz${goto 220}${freq_g 4}GHz
+${alignc}${color slate grey}MEM:${color }$memperc%,$memmax 
+${alignc}${memgraph 20,130 gray gray}
+${color slate grey}ROOT: ${color }${fs_used /}/${fs_size /}${alignr}${color slate grey}HOME: ${color }${fs_used /home}/${fs_size /home}
+${fs_bar 7,100 /}${alignr}${fs_bar 7,100 /home}
+${color slate grey}NET-UP: ${color }${upspeedf eno16777736}KiB ${alignr}${color slate grey}NET-DW: ${color }${downspeedf eno16777736}KiB${color}
+${upspeedgraph eno16777736 20,100 gray gray}${alignr}${downspeedgraph eno16777736 20,100 gray}
