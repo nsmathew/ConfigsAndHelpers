@@ -38,7 +38,8 @@ end
 
 -- {{{ Variable definitions
 -- Themes define colours, icons, font and wallpapers.
-beautiful.init("~/.config/awesome/themes/default/theme.lua")
+theme_file = "/home/nsm09/.config/awesome/themes/default/theme.lua"
+beautiful.init(theme_file)
 for s = 1, screen.count() do
 	gears.wallpaper.maximized(beautiful.wallpaper, s, true)
 end
@@ -60,8 +61,8 @@ local layouts =
 {
     awful.layout.suit.floating,
     awful.layout.suit.tile,
-    awful.layout.suit.tile.left,
     awful.layout.suit.tile.bottom,
+    awful.layout.suit.tile.left,
     awful.layout.suit.tile.top,
     awful.layout.suit.fair,
     awful.layout.suit.fair.horizontal,
@@ -86,7 +87,7 @@ end
 tags = {}
 for s = 1, screen.count() do
     -- Each screen has its own tag table.
-    tags[s] = awful.tag({ 1, 2, 3, 4, 5 }, s, layouts[2])
+    tags[s] = awful.tag({ "  1  ", "  2  ","   3  ", "  4  ", "  5  ", "  6  " }, s, layouts[2])
 end
 -- }}}
 
@@ -95,16 +96,25 @@ end
 myawesomemenu = {
    { "manual", terminal .. " -e man awesome" },
    { "edit config", editor_cmd .. " " .. awesome.conffile },
+   { "edit theme", editor_cmd .. " " ..  theme_file },
    { "restart", awesome.restart },
    { "quit", awesome.quit }
 }
 
+sessionmenu = {
+	{ "lock", "lxdm -c USER_SWITCH"},
+	{ "reboot", "reboot"},
+	{ "shutdown","shutdown now"}
+}
 mymainmenu = awful.menu({ items = { { "awesome", myawesomemenu, beautiful.awesome_icon },
-                                    { "open terminal", terminal },
+                                    { "terminal", terminal },
 				    { "chromium", "chromium" },
+				    { "vim", "xfce4-terminal -x vim"},
+				    { "ranger", "xfce4-terminal -x ranger"},
 				    { "thunar", "thunar"},
-				    {"thunar(root)", "xfce4-terminal -x sudo thunar"}
-                                  }
+				    { "thunar(root)", "xfce4-terminal -x sudo thunar"},
+				    { "session", sessionmenu}	
+			    	  }
                         })
 
 mylauncher = awful.widget.launcher({ image = beautiful.awesome_icon,
@@ -185,24 +195,6 @@ for s = 1, screen.count() do
     -- Create a tasklist widget
     mytasklist[s] = awful.widget.tasklist(s, awful.widget.tasklist.filter.currenttags, mytasklist.buttons)
 
-    memwidget = wibox.widget.textbox()
-    memtimer = timer({ timeout = 5 })
-    memtimer:connect_signal("timeout", function() 
-	    	totmem = awful.util.pread("free | tr -s ' ' | sed -n 2p | cut -d' ' -f 2")
-		usdmem = awful.util.pread("free | tr -s ' ' | sed -n 2p | cut -d' ' -f 3")
-		usdmempct = tonumber(string.format("%." .. (0) .. "f", usdmem / totmem * 100))
-		memwidget:set_text("|M:" .. usdmempct .. "%")
-	    end)
-    memtimer:start()
-
-    diskwidget = wibox.widget.textbox()
-    disktimer = timer({ timeout = 5 })
-    disktimer:connect_signal("timeout", function()
-	    	homeusg = awful.util.pread("df -h /home | tail -n 1 | tr -s ' ' | cut -d' ' -f 5")
-		rootusg = awful.util.pread("df -h / | tail -n 1 | tr -s ' ' | cut -d' ' -f 5")
-		diskwidget:set_text("|~:" .. homeusg .. "|/:" .. rootusg)
-		end)
-    disktimer:start()
     -- Create the wibox
     mywibox[s] = awful.wibox({ position = "top", screen = s, height = "25" })
 
@@ -216,8 +208,6 @@ for s = 1, screen.count() do
     local right_layout = wibox.layout.fixed.horizontal()
     if s == 1 then right_layout:add(wibox.widget.systray()) end
     right_layout:add(mytextclock)
-    right_layout:add(memwidget)
-    right_layout:add(diskwidget)
     right_layout:add(mylayoutbox[s])
 
     -- Now bring it all together (with the tasklist in the middle)
@@ -388,7 +378,8 @@ awful.rules.rules = {
                      focus = awful.client.focus.filter,
                      raise = true,
                      keys = clientkeys,
-                     buttons = clientbuttons } },
+                     buttons = clientbuttons,
+	     	     size_hints_honor = false} },
     { rule = { class = "MPlayer" },
       properties = { floating = true } },
     { rule = { class = "pinentry" },
@@ -397,6 +388,8 @@ awful.rules.rules = {
       properties = { floating = true } },
     { rule = { class = "conky" },
       properties = { border_width = 0 } },
+    { rule = { class = "Orage" },
+      properties = { floating = true } },
     -- Set Firefox to always map on tags number 2 of screen 1.
     -- { rule = { class = "Firefox" },
     --   properties = { tag = tags[1][2] } },
