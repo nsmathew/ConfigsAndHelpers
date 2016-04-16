@@ -1,481 +1,752 @@
--- Standard awesome library
-local gears = require("gears")
-local awful = require("awful")
-awful.rules = require("awful.rules")
-require("awful.autofocus")
--- Widget and layout library
-local wibox = require("wibox")
--- Theme handling library
-local beautiful = require("beautiful")
--- Notification library
-local naughty = require("naughty")
-local menubar = require("menubar")
+--[[ RINGS with SECTORS widget
+	v1.1 by wlourf (07 Jan. 2011)
+	this widget draws a ring with differents effects 
+	http://u-scripts.blogspot.com/2010/08/rings-sectors-widgets.html
+	
+To call the script in a conky, use, before TEXT
+	lua_load /path/to/the/script/rings.lua
+	lua_draw_hook_pre main_rings
+and add one line (blank or not) after TEXT
 
--- {{{ Error handling
--- Check if awesome encountered an error during startup and fell back to
--- another config (This code will only ever execute for the fallback config)
-if awesome.startup_errors then
-    naughty.notify({ preset = naughty.config.presets.critical,
-                     title = "Oops, there were errors during startup!",
-                     text = awesome.startup_errors })
-end
 
--- Handle runtime errors after startup
-do
-    local in_error = false
-    awesome.connect_signal("debug::error", function (err)
-        -- Make sure we don't go into an endless error loop
-        if in_error then return end
-        in_error = true
+Parameters are :
+3 parameters are mandatory
+name		- the name of the conky variable to display,
+			  for example for {$cpu cpu0}, just write name="cpu"
+arg			- the argument of the above variable,
+			  for example for {$cpu cpu0}, just write arg="cpu0"
+		  	  arg can be a numerical value if name=""
+max			- the maximum value the above variable can reach,
+			  for example for {$cpu cpu0}, just write max=100
+	
+Optional parameters:
+xc,yc		- coordinates of the center of the ring,
+			  default = middle of the conky window
+radius		- external radius of the ring, in pixels,
+			  default = quarter of the width of the conky window
+thickness	- thickness of the ring, in pixels, default = 10 pixels
+start_angle	- starting angle of the ring, in degrees, value can be negative,
+			  default = 0 degree
+end_angle	- ending angle of the ring, in degrees,
+			  value must be greater than start_angle, default = 360 degrees
+sectors		- number of sectors in the ring, default = 10
+gap_sectors - gap between two sectors, in pixels, default = 1 pixel
+cap			- the way to close a sector, available values are
+				"p" for parallel , default value 
+				"r" for radial (follow the radius)
+inverse_arc	- if set to true, arc will be anticlockwise, default=false
+border_size	- size of the border, in pixels, default = 0 pixel i.e. no border
+fill_sector	- if set to true, each sector will be completely filled,
+			  default=false, this parameter is inoperate if sectors=1
+background	- if set to false, background will not be drawn, default=true
+foreground	- if set to false, foreground will not be drawn, default=true
 
-        naughty.notify({ preset = naughty.config.presets.critical,
-                         title = "Oops, an error happened!",
-                         text = err })
-        in_error = false
-    end)
-end
--- }}}
+Colours tables below are defined into braces :
+{position in the gradient (0 to 1), colour in hexadecimal, alpha (0 to 1)}
+example for a single colour table : 
+{{0,0xFFAA00,1}} position parameter doesn't matter
+example for a two-colours table : 
+{{0,0xFFAA00,1},{1,0x00AA00,1}} or {{0.5,0xFFAA00,1},{1,0x00AA00,1}}
+example for a three-colours table : 
+{{0,0xFFAA00,1},{0.5,0xFF0000,1},{1,0x00AA00,1}}
 
--- {{{ Variable definitions
--- Themes define colours, icons, font and wallpapers.
-beautiful.init("~/.config/awesome/themes/default/theme.lua")
-for s = 1, screen.count() do
-	gears.wallpaper.maximized(beautiful.wallpaper, s, true)
-end
+bg_colour1	- colour table for background,
+			  default = {{0,0x00ffff,0.1},{0.5,0x00FFFF,0.5},{1,0x00FFFF,0.1}}
+fg_colour1	- colour table for foreground,
+			  default = {{0,0x00FF00,0.1},{0.5,0x00FF00,1},{1,0x00FF00,0.1}}
+bd_colour1	- colour table for border,
+			  default = {{0,0xFFFF00,0.5},{0.5,0xFFFF00,1},{1,0xFFFF00,0.5}}			  
 
--- This is used later as the default terminal and editor to run.
-terminal = "xfce4-terminal"
-editor = "vim"
-editor_cmd = terminal .. " -x " .. editor
+Seconds tables for radials gradients :
+bg_colour2	- second colour table for background, default = no second colour
+fg_colour2	- second colour table for foreground, default = no second colour
+bd_colour2	- second colour table for border, default = no second colour
 
--- Default modkey.
--- Usually, Mod4 is the key with a logo between Control and Alt.
--- If you do not like this or do not have such a key,
--- I suggest you to remap Mod4 to another key using xmodmap or other tools.
--- However, you can use another modifier like Mod1, but it may interact with others.
-modkey = "Mod4"
+draw_me     - if set to false, text is not drawn (default = true or 1)
+              it can be used with a conky string, if the string returns 1, the text is drawn :
+              example : "${if_empty ${wireless_essid wlan0}}${else}1$endif",
 
--- Table of layouts to cover with awful.layout.inc, order matters.
-local layouts =
-{
-    awful.layout.suit.floating,
-    awful.layout.suit.tile,
-    awful.layout.suit.tile.left,
-    awful.layout.suit.tile.bottom,
-    awful.layout.suit.tile.top,
-    awful.layout.suit.fair,
-    awful.layout.suit.fair.horizontal,
-    awful.layout.suit.spiral,
-    awful.layout.suit.spiral.dwindle,
-    awful.layout.suit.max,
-    awful.layout.suit.max.fullscreen,
-    awful.layout.suit.magnifier
+v1.0 (08 Aug. 2010) original release
+v1.1 (07 Jan. 2011) Add draw_me parameter and correct memory leaks, thanks to "Creamy Goodness"
+                    text is parsed inside the function, not in the array of settings
+
+--      This program is free software; you can redistribute it and/or modify
+--      it under the terms of the GNU General Public License as published by
+--      the Free Software Foundation version 3 (GPLv3)
+--     
+--      This program is distributed in the hope that it will be useful,
+--      but WITHOUT ANY WARRANTY; without even the implied warranty of
+--      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--      GNU General Public License for more details.
+--     
+--      You should have received a copy of the GNU General Public License
+--      along with this program; if not, write to the Free Software
+--      Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+--      MA 02110-1301, USA.		
+
+]]
+--NM, Original retrieved from http://wlourf.deviantart.com/art/Rings-And-Sectors-Conky-1-1-174493100?
+--NM, Modifications to the param tables only (rings_settings table)
+
+
+require 'cairo'
+
+function conky_main_rings()
+-- START PARAMETERS HERE
+local rings_settings={
+	--Hours, inner most, in 12Hr format
+	{
+	name="time",
+	arg="%l",
+	max=12,
+	xc=205,
+	yc=56,
+	thickness=5,
+	radius=27,
+	sectors=12,
+	start_angle=0,
+	end_angle=180,
+	border_size=1,
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,0.4}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},
+	},
+	--Minutes
+	{
+	name="time",
+	arg="%M",
+	max=60,
+	xc=205,
+	yc=56,
+	thickness=3.5,
+	radius=33,
+	sectors=12,
+	start_angle=0,
+	end_angle=180,
+	border_size=1,
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,0.7}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},
+	},
+	--Seconds
+	{
+	name="time",
+	arg="%S",
+	max=60,
+	xc=205,
+	yc=56,
+	thickness=3,
+	radius=39,
+	sectors=12,
+	start_angle=0,
+	end_angle=180,
+	border_size=1,
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,1}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},	
+	},
+	--Day of the week
+	{
+	name="time",
+	arg="%u",
+	max=7,
+	xc=85,
+	yc=56,
+	thickness=5,
+	radius=27,
+	sectors=7,
+	start_angle=-0,
+	end_angle=-180,
+	inverse_arc=true,
+	border_size=1,
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,0.4}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},
+	},
+	--Month
+	{
+	name="time",
+	arg="%m",
+	max=12,
+	xc=85,
+	yc=56,
+	thickness=3.5,
+	radius=33,
+	sectors=12,
+	start_angle=-0,
+	end_angle=-180,
+	inverse_arc=true,
+	border_size=1,
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,0.7}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},
+	},
+	--Day of the month
+	{
+	name="time",
+	arg="%e",
+	max=31,
+	xc=85,
+	yc=56,
+	thickness=3,
+	radius=39,
+	sectors=31,
+	start_angle=-0,
+	end_angle=-180,
+	inverse_arc=true,
+	border_size=1,
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,1}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},	
+	},
+	--CPU1, start from the left, only 3/4 ring and 4 sectors
+	{
+	name="cpu",
+	arg="cpu1",
+	max=100,
+	xc=32,
+	yc=262,
+	thickness=5,
+	radius=25,
+	sectors=4,
+	gap_sectors=3,
+	start_angle=177,
+	end_angle=-125,
+	border_size=1,
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,1}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},
+	},
+	--CPU2
+	{
+	name="cpu",
+	arg="cpu2",
+	max=100,
+	xc=104,
+	yc=262,
+	thickness=5,
+	radius=25,
+	sectors=4,
+	gap_sectors=3,
+	start_angle=177,
+	end_angle=-125,
+	border_size=1,
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,1}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},
+	},
+	--CPU3
+	{
+	name="cpu",
+	arg="cpu3",
+	max=100,
+	xc=176,
+	yc=262,
+	thickness=5,
+	radius=25,
+	sectors=4,
+	gap_sectors=3,
+	start_angle=177,
+	end_angle=-125,
+	border_size=1,	
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,1}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},
+	},
+	--CPU4
+	{
+	name="cpu",
+	arg="cpu4",
+	max=100,
+	xc=248,
+	yc=262,
+	thickness=5,
+	radius=25,
+	sectors=4,
+	gap_sectors=3,
+	start_angle=177,
+	end_angle=-125,
+	border_size=1,
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,1}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},
+	},
+	--CPU5
+	{
+	name="cpu",
+	arg="cpu1",
+	max=100,
+	xc=32,
+	yc=345,
+	thickness=5,
+	radius=25,
+	sectors=4,
+	gap_sectors=3,
+	start_angle=177,
+	end_angle=-125,
+	border_size=1,
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,1}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},
+	},
+	--CPU2
+	{
+	name="cpu",
+	arg="cpu2",
+	max=100,
+	xc=104,
+	yc=345,
+	thickness=5,
+	radius=25,
+	sectors=4,
+	gap_sectors=3,
+	start_angle=177,
+	end_angle=-125,
+	border_size=1,
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,1}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},
+	},
+	--CPU3
+	{
+	name="cpu",
+	arg="cpu3",
+	max=100,
+	xc=176,
+	yc=345,
+	thickness=5,
+	radius=25,
+	sectors=4,
+	gap_sectors=3,
+	start_angle=177,
+	end_angle=-125,
+	border_size=1,	
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,1}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},
+	},
+	--CPU4
+	{
+	name="cpu",
+	arg="cpu4",
+	max=100,
+	xc=248,
+	yc=345,
+	thickness=5,
+	radius=25,
+	sectors=4,
+	gap_sectors=3,
+	start_angle=177,
+	end_angle=-125,
+	border_size=1,
+	bg_colour1={{0,0x5A6E6C,0}},
+	fg_colour1={{0,0x5A6E6C,1}},
+	bd_colour1={{0,0x5A6E6C,1},{1,0x5A6E6C,1}},
+	},
 }
--- }}}
+--END OF PARAMETERS HERE
 
--- {{{ Wallpaper
-if beautiful.wallpaper then
-    for s = 1, screen.count() do
-        gears.wallpaper.maximized(beautiful.wallpaper, s, true)
-    end
-end
--- }}}
+--main function
 
--- {{{ Tags
--- Define a tag table which hold all screen tags.
-tags = {}
-for s = 1, screen.count() do
-    -- Each screen has its own tag table.
-    tags[s] = awful.tag({ 1, 2, 3, 4, 5 }, s, layouts[2])
-end
--- }}}
+	--if conky_window==nil then return end
 
--- {{{ Menu
--- Create a laucher widget and a main menu
-myawesomemenu = {
-   { "manual", terminal .. " -e man awesome" },
-   { "edit config", editor_cmd .. " " .. awesome.conffile },
-   { "restart", awesome.restart },
-   { "quit", awesome.quit }
-}
+	local cs=cairo_xlib_surface_create(conky_window.display,
+		conky_window.drawable, 
+		conky_window.visual, conky_window.width, conky_window.height)
+	local cr=cairo_create(cs)
 
-mymainmenu = awful.menu({ items = { { "awesome", myawesomemenu, beautiful.awesome_icon },
-                                    { "open terminal", terminal },
-				    { "chromium", "chromium" },
-				    { "thunar", "thunar"},
-				    {"thunar(root)", "xfce4-terminal -x sudo thunar"}
-                                  }
-                        })
+	if tonumber(conky_parse('${updates}'))>3 then
+		for i in pairs(rings_settings) do
+			draw_ring(cr,rings_settings[i])
+		end
+	end
 
-mylauncher = awful.widget.launcher({ image = beautiful.awesome_icon,
-                                     menu = mymainmenu })
+	cairo_destroy(cr)
 
--- Menubar configuration
-menubar.utils.terminal = terminal -- Set the terminal for applications that require it
--- }}}
-
--- {{{ Wibox
--- Create a textclock widget
-mytextclock = awful.widget.textclock()
-
--- Create a wibox for each screen and add it
-mywibox = {}
-mypromptbox = {}
-mylayoutbox = {}
-mytaglist = {}
-mytaglist.buttons = awful.util.table.join(
-                    awful.button({ }, 1, awful.tag.viewonly),
-                    awful.button({ modkey }, 1, awful.client.movetotag),
-                    awful.button({ }, 3, awful.tag.viewtoggle),
-                    awful.button({ modkey }, 3, awful.client.toggletag),
-                    awful.button({ }, 4, function(t) awful.tag.viewnext(awful.tag.getscreen(t)) end),
-                    awful.button({ }, 5, function(t) awful.tag.viewprev(awful.tag.getscreen(t)) end)
-                    )
-mytasklist = {}
-mytasklist.buttons = awful.util.table.join(
-                     awful.button({ }, 1, function (c)
-                                              if c == client.focus then
-                                                  c.minimized = true
-                                              else
-                                                  -- Without this, the following
-                                                  -- :isvisible() makes no sense
-                                                  c.minimized = false
-                                                  if not c:isvisible() then
-                                                      awful.tag.viewonly(c:tags()[1])
-                                                  end
-                                                  -- This will also un-minimize
-                                                  -- the client, if needed
-                                                  client.focus = c
-                                                  c:raise()
-                                              end
-                                          end),
-                     awful.button({ }, 3, function ()
-                                              if instance then
-                                                  instance:hide()
-                                                  instance = nil
-                                              else
-                                                  instance = awful.menu.clients({
-                                                      theme = { width = 250 }
-                                                  })
-                                              end
-                                          end),
-                     awful.button({ }, 4, function ()
-                                              awful.client.focus.byidx(1)
-                                              if client.focus then client.focus:raise() end
-                                          end),
-                     awful.button({ }, 5, function ()
-                                              awful.client.focus.byidx(-1)
-                                              if client.focus then client.focus:raise() end
-                                          end))
-
-for s = 1, screen.count() do
-    -- Create a promptbox for each screen
-    mypromptbox[s] = awful.widget.prompt()
-    -- Create an imagebox widget which will contains an icon indicating which layout we're using.
-    -- We need one layoutbox per screen.
-    mylayoutbox[s] = awful.widget.layoutbox(s)
-    mylayoutbox[s]:buttons(awful.util.table.join(
-                           awful.button({ }, 1, function () awful.layout.inc(layouts, 1) end),
-                           awful.button({ }, 3, function () awful.layout.inc(layouts, -1) end),
-                           awful.button({ }, 4, function () awful.layout.inc(layouts, 1) end),
-                           awful.button({ }, 5, function () awful.layout.inc(layouts, -1) end)))
-    -- Create a taglist widget
-    mytaglist[s] = awful.widget.taglist(s, awful.widget.taglist.filter.all, mytaglist.buttons)
-
-    -- Create a tasklist widget
-    mytasklist[s] = awful.widget.tasklist(s, awful.widget.tasklist.filter.currenttags, mytasklist.buttons)
-
-    memwidget = wibox.widget.textbox()
-    memtimer = timer({ timeout = 5 })
-    memtimer:connect_signal("timeout", function() 
-	    	totmem = awful.util.pread("free | tr -s ' ' | sed -n 2p | cut -d' ' -f 2")
-		usdmem = awful.util.pread("free | tr -s ' ' | sed -n 2p | cut -d' ' -f 3")
-		usdmempct = tonumber(string.format("%." .. (0) .. "f", usdmem / totmem * 100))
-		memwidget:set_text("|M:" .. usdmempct .. "%")
-	    end)
-    memtimer:start()
-
-    diskwidget = wibox.widget.textbox()
-    disktimer = timer({ timeout = 5 })
-    disktimer:connect_signal("timeout", function()
-	    	homeusg = awful.util.pread("df -h /home | tail -n 1 | tr -s ' ' | cut -d' ' -f 5")
-		rootusg = awful.util.pread("df -h / | tail -n 1 | tr -s ' ' | cut -d' ' -f 5")
-		diskwidget:set_text("|~:" .. homeusg .. "|/:" .. rootusg)
-		end)
-    disktimer:start()
-    -- Create the wibox
-    mywibox[s] = awful.wibox({ position = "top", screen = s, height = "25" })
-
-    -- Widgets that are aligned to the left
-    local left_layout = wibox.layout.fixed.horizontal()
-    left_layout:add(mylauncher)
-    left_layout:add(mytaglist[s])
-    left_layout:add(mypromptbox[s])
-
-    -- Widgets that are aligned to the right
-    local right_layout = wibox.layout.fixed.horizontal()
-    if s == 1 then right_layout:add(wibox.widget.systray()) end
-    right_layout:add(mytextclock)
-    right_layout:add(memwidget)
-    right_layout:add(diskwidget)
-    right_layout:add(mylayoutbox[s])
-
-    -- Now bring it all together (with the tasklist in the middle)
-    local layout = wibox.layout.align.horizontal()
-    layout:set_left(left_layout)
-    layout:set_middle(mytasklist[s])
-    layout:set_right(right_layout)
-
-    mywibox[s]:set_widget(layout)
-end
--- }}}
-
--- {{{ Mouse bindings
-root.buttons(awful.util.table.join(
-    awful.button({ }, 3, function () mymainmenu:toggle() end),
-    awful.button({ }, 4, awful.tag.viewnext),
-    awful.button({ }, 5, awful.tag.viewprev)
-))
--- }}}
-
--- {{{ Key bindings
-globalkeys = awful.util.table.join(
-    awful.key({ modkey,           }, "Left",   awful.tag.viewprev       ),
-    awful.key({ modkey,           }, "Right",  awful.tag.viewnext       ),
-    awful.key({ modkey,           }, "Escape", awful.tag.history.restore),
-
-    awful.key({ modkey,           }, "j",
-        function ()
-            awful.client.focus.byidx( 1)
-            if client.focus then client.focus:raise() end
-        end),
-    awful.key({ modkey,           }, "k",
-        function ()
-            awful.client.focus.byidx(-1)
-            if client.focus then client.focus:raise() end
-        end),
-    awful.key({ modkey,           }, "w", function () mymainmenu:show() end),
-
-    -- Layout manipulation
-    awful.key({ modkey, "Shift"   }, "j", function () awful.client.swap.byidx(  1)    end),
-    awful.key({ modkey, "Shift"   }, "k", function () awful.client.swap.byidx( -1)    end),
-    awful.key({ modkey, "Control" }, "j", function () awful.screen.focus_relative( 1) end),
-    awful.key({ modkey, "Control" }, "k", function () awful.screen.focus_relative(-1) end),
-    awful.key({ modkey,           }, "u", awful.client.urgent.jumpto),
-    awful.key({ modkey,           }, "Tab",
-        function ()
-            awful.client.focus.history.previous()
-            if client.focus then
-                client.focus:raise()
-            end
-        end),
-
-    -- Standard program
-    awful.key({ modkey,           }, "Return", function () awful.util.spawn(terminal) end),
-    awful.key({ modkey, "Control" }, "r", awesome.restart),
-    awful.key({ modkey, "Shift"   }, "q", awesome.quit),
-
-    awful.key({ modkey,           }, "l",     function () awful.tag.incmwfact( 0.05)    end),
-    awful.key({ modkey,           }, "h",     function () awful.tag.incmwfact(-0.05)    end),
-    awful.key({ modkey, "Shift"   }, "h",     function () awful.tag.incnmaster( 1)      end),
-    awful.key({ modkey, "Shift"   }, "l",     function () awful.tag.incnmaster(-1)      end),
-    awful.key({ modkey, "Control" }, "h",     function () awful.tag.incncol( 1)         end),
-    awful.key({ modkey, "Control" }, "l",     function () awful.tag.incncol(-1)         end),
-    awful.key({ modkey,           }, "space", function () awful.layout.inc(layouts,  1) end),
-    awful.key({ modkey, "Shift"   }, "space", function () awful.layout.inc(layouts, -1) end),
-
-    awful.key({ modkey, "Control" }, "n", awful.client.restore),
-
-    -- Prompt
-    awful.key({ modkey },            "r",     function () mypromptbox[mouse.screen]:run() end),
-
-    awful.key({ modkey }, "x",
-              function ()
-                  awful.prompt.run({ prompt = "Run Lua code: " },
-                  mypromptbox[mouse.screen].widget,
-                  awful.util.eval, nil,
-                  awful.util.getdir("cache") .. "/history_eval")
-              end),
-    -- Menubar
-    awful.key({ modkey }, "p", function() menubar.show() end),
-    awful.key({ modkey }, "b", function ()
-	        mywibox[mouse.screen].visible = not mywibox[mouse.screen].visible
-	end),
-    awful.key({ }, "Print", function () awful.util.spawn("xfce4-screenshooter") end)    
-)
-
-clientkeys = awful.util.table.join(
-    awful.key({ modkey,           }, "f",      function (c) c.fullscreen = not c.fullscreen  end),
-    awful.key({ modkey, "Shift"   }, "c",      function (c) c:kill()                         end),
-    awful.key({ modkey, "Control" }, "space",  awful.client.floating.toggle                     ),
-    awful.key({ modkey, "Control" }, "Return", function (c) c:swap(awful.client.getmaster()) end),
-    awful.key({ modkey,           }, "o",      awful.client.movetoscreen                        ),
-    awful.key({ modkey,           }, "t",      function (c) c.ontop = not c.ontop            end),
-    awful.key({ modkey,           }, "n",
-        function (c)
-            -- The client currently has the input focus, so it cannot be
-            -- minimized, since minimized clients can't have the focus.
-            c.minimized = true
-        end),
-    awful.key({ modkey,           }, "m",
-        function (c)
-            c.maximized_horizontal = not c.maximized_horizontal
-            c.maximized_vertical   = not c.maximized_vertical
-        end)
-)
-
--- Bind all key numbers to tags.
--- Be careful: we use keycodes to make it works on any keyboard layout.
--- This should map on the top row of your keyboard, usually 1 to 9.
-for i = 1, 9 do
-    globalkeys = awful.util.table.join(globalkeys,
-        -- View tag only.
-        awful.key({ modkey }, "#" .. i + 9,
-                  function ()
-                        local screen = mouse.screen
-                        local tag = awful.tag.gettags(screen)[i]
-                        if tag then
-                           awful.tag.viewonly(tag)
-                        end
-                  end),
-        -- Toggle tag.
-        awful.key({ modkey, "Control" }, "#" .. i + 9,
-                  function ()
-                      local screen = mouse.screen
-                      local tag = awful.tag.gettags(screen)[i]
-                      if tag then
-                         awful.tag.viewtoggle(tag)
-                      end
-                  end),
-        -- Move client to tag.
-        awful.key({ modkey, "Shift" }, "#" .. i + 9,
-                  function ()
-                      if client.focus then
-                          local tag = awful.tag.gettags(client.focus.screen)[i]
-                          if tag then
-                              awful.client.movetotag(tag)
-                          end
-                     end
-                  end),
-        -- Toggle tag.
-        awful.key({ modkey, "Control", "Shift" }, "#" .. i + 9,
-                  function ()
-                      if client.focus then
-                          local tag = awful.tag.gettags(client.focus.screen)[i]
-                          if tag then
-                              awful.client.toggletag(tag)
-                          end
-                      end
-                  end))
 end
 
-clientbuttons = awful.util.table.join(
-    awful.button({ }, 1, function (c) client.focus = c; c:raise() end),
-    awful.button({ modkey }, 1, awful.mouse.client.move),
-    awful.button({ modkey }, 3, awful.mouse.client.resize))
 
--- Set keys
-root.keys(globalkeys)
--- }}}
 
--- {{{ Rules
--- Rules to apply to new clients (through the "manage" signal).
-awful.rules.rules = {
-    -- All clients will match this rule.
-    { rule = { },
-      properties = { border_width = beautiful.border_width,
-                     border_color = beautiful.border_normal,
-                     focus = awful.client.focus.filter,
-                     raise = true,
-                     keys = clientkeys,
-                     buttons = clientbuttons } },
-    { rule = { class = "MPlayer" },
-      properties = { floating = true } },
-    { rule = { class = "pinentry" },
-      properties = { floating = true } },
-    { rule = { class = "gimp" },
-      properties = { floating = true } },
-    { rule = { class = "conky" },
-      properties = { border_width = 0 } },
-    -- Set Firefox to always map on tags number 2 of screen 1.
-    -- { rule = { class = "Firefox" },
-    --   properties = { tag = tags[1][2] } },
-}
--- }}}
 
--- {{{ Signals
--- Signal function to execute when a new client appears.
-client.connect_signal("manage", function (c, startup)
-    -- Enable sloppy focus
-    c:connect_signal("mouse::enter", function(c)
-        if awful.layout.get(c.screen) ~= awful.layout.suit.magnifier
-            and awful.client.focus.filter(c) then
-            client.focus = c
-        end
-    end)
+function draw_ring(cr, t)
 
-    if not startup then
-        -- Set the windows at the slave,
-        -- i.e. put it at the end of others instead of setting it master.
-        -- awful.client.setslave(c)
+	local function rgba_to_r_g_b_a(tcolour)
+		local colour,alpha=tcolour[2],tcolour[3]
+		return ((colour / 0x10000) % 0x100) / 255., 
+			((colour / 0x100) % 0x100) / 255., (colour % 0x100) / 255., alpha
+	end
+			
+			
+	local function calc_delta(tcol1,tcol2)
+		--calculate deltas P R G B A to table_colour 1
 
-        -- Put windows in a smart way, only if they does not set an initial position.
-        if not c.size_hints.user_position and not c.size_hints.program_position then
-            awful.placement.no_overlap(c)
-            awful.placement.no_offscreen(c)
-        end
-    end
+		for x = 1, #tcol1 do
+			tcol1[x].dA	= 0
+			tcol1[x].dP = 0
+	 		tcol1[x].dR = 0
+			tcol1[x].dG = 0
+			tcol1[x].dB = 0
+			if tcol2~=nil and #tcol1 == #tcol2 then
+				local r1,g1,b1,a1 = rgba_to_r_g_b_a(tcol1[x])
+				local r2,g2,b2,a2 = rgba_to_r_g_b_a(tcol2[x])
+				tcol1[x].dP = (tcol2[x][1]-tcol1[x][1])/t.sectors
+		 		tcol1[x].dR = (r2-r1)/t.sectors
+				tcol1[x].dG = (g2-g1)/t.sectors
+				tcol1[x].dB = (b2-b1)/t.sectors
+				tcol1[x].dA = (a2-a1)/t.sectors		
+				
+			end
+		end
+		
+		return tcol1
+	end
 
-    local titlebars_enabled = false
-    if titlebars_enabled and (c.type == "normal" or c.type == "dialog") then
-        -- buttons for the titlebar
-        local buttons = awful.util.table.join(
-                awful.button({ }, 1, function()
-                    client.focus = c
-                    c:raise()
-                    awful.mouse.client.move(c)
-                end),
-                awful.button({ }, 3, function()
-                    client.focus = c
-                    c:raise()
-                    awful.mouse.client.resize(c)
-                end)
-                )
+	--check values
+	local function setup(t)
+		if t.name==nil and t.arg==nil then 
+			print ("No input values ... use parameters 'name'" +
+				" with 'arg' or only parameter 'arg' ") 
+			return
+		end
 
-        -- Widgets that are aligned to the left
-        local left_layout = wibox.layout.fixed.horizontal()
-        left_layout:add(awful.titlebar.widget.iconwidget(c))
-        left_layout:buttons(buttons)
+		if t.max==nil then
+			print ("No maximum value defined, use 'max'")
+			print ("for name=" .. t.name)
+			print ("with arg=" .. t.arg)
+			return
+		end
+		if t.name==nil then t.name="" end
+		if t.arg==nil then t.arg="" end
 
-        -- Widgets that are aligned to the right
-        local right_layout = wibox.layout.fixed.horizontal()
-        right_layout:add(awful.titlebar.widget.floatingbutton(c))
-        right_layout:add(awful.titlebar.widget.maximizedbutton(c))
-        right_layout:add(awful.titlebar.widget.stickybutton(c))
-        right_layout:add(awful.titlebar.widget.ontopbutton(c))
-        right_layout:add(awful.titlebar.widget.closebutton(c))
+		if t.xc==nil then t.xc=conky_window.width/2 end
+		if t.yc==nil then t.yc=conky_window.height/2 end
+		if t.thickness ==nil then t.thickness = 10 end
+		if t.radius ==nil then t.radius =conky_window.width/4 end
+		if t.start_angle==nil then t.start_angle =0 end
+		if t.end_angle==nil then t.end_angle=360 end
+		if t.bg_colour1==nil then 
+			t.bg_colour1={{0,0x00ffff,0.1},{0.5,0x00FFFF,0.5},{1,0x00FFFF,0.1}}
+		end
+		if t.fg_colour1==nil then
+			t.fg_colour1={{0,0x00FF00,0.1},{0.5,0x00FF00,1},{1,0x00FF00,0.1}}
+		end
+		if t.bd_colour1==nil then
+			t.bd_colour1={{0,0xFFFF00,0.5},{0.5,0xFFFF00,1},{1,0xFFFF00,0.5}}
+		end
+		if t.sectors==nil then t.sectors=10 end
+		if t.gap_sectors==nil then t.gap_sectors=1 end 
+		if t.fill_sector==nil then t.fill_sector=false end
+		if t.sectors==1 then t.fill_sector=false end
+		if t.border_size==nil then t.border_size=0 end
+		if t.cap==nil then t.cap="p" end
+		--some checks
+		if t.thickness>t.radius then t.thickness=t.radius*0.1 end
+		t.int_radius = t.radius-t.thickness
 
-        -- The title goes in the middle
-        local middle_layout = wibox.layout.flex.horizontal()
-        local title = awful.titlebar.widget.titlewidget(c)
-        title:set_align("center")
-        middle_layout:add(title)
-        middle_layout:buttons(buttons)
+		--check colors tables 
+		for i=1, #t.bg_colour1 do 
+			if #t.bg_colour1[i]~=3 then t.bg_colour1[i]={1,0xFFFFFF,0.5} end
+		end
+		for i=1, #t.fg_colour1 do 
+			if #t.fg_colour1[i]~=3 then t.fg_colour1[i]={1,0xFF0000,1} end
+		end
+		for i=1, #t.bd_colour1 do 
+			if #t.bd_colour1[i]~=3 then t.bd_colour1[i]={1,0xFFFF00,1} end
+		end
+	
+		if t.bg_colour2~=nil then
+			for i=1, #t.bg_colour2 do 
+				if #t.bg_colour2[i]~=3 then t.bg_colour2[i]={1,0xFFFFFF,0.5} end
+			end
+		end
+		if t.fg_colour2~=nil then
+			for i=1, #t.fg_colour2 do 
+				if #t.fg_colour2[i]~=3 then t.fg_colour2[i]={1,0xFF0000,1} end
+			end
+		end
+		if t.bd_colour2~=nil then
+			for i=1, #t.bd_colour2 do 
+				if #t.bd_colour2[i]~=3 then t.bd_colour2[i]={1,0xFFFF00,1} end
+			end
+		end 	
+		
+		if t.start_angle>=t.end_angle then
+		 local tmp_angle=t.end_angle
+		 t.end_angle= t.start_angle
+		 t.start_angle = tmp_angle
+		 -- print ("inversed angles")
+			if t.end_angle-t.start_angle>360 and t.start_angle>0 then
+				t.end_angle=360+t.start_angle
+				print ("reduce angles")
+			end
+		
+			if t.end_angle+t.start_angle>360 and t.start_angle<=0 then
+				t.end_angle=360+t.start_angle
+				print ("reduce angles")
+			end
+		
+			if t.int_radius<0 then t.int_radius =0 end
+			if t.int_radius>t.radius then
+				local tmp_radius=t.radius
+				t.radius=t.int_radius
+				t.int_radius=tmp_radius
+				print ("inversed radius")
+			end
+			if t.int_radius==t.radius then
+				t.int_radius=0
+				print ("int radius set to 0")
+			end 
+		end
+		
+		t.fg_colour1 = calc_delta(t.fg_colour1,t.fg_colour2)
+		t.bg_colour1 = calc_delta(t.bg_colour1,t.bg_colour2)
+		t.bd_colour1 = calc_delta(t.bd_colour1,t.bd_colour2)
+	end
+	
+	if t.draw_me == true then t.draw_me = nil end
+	if t.draw_me ~= nil and conky_parse(tostring(t.draw_me)) ~= "1" then return end	
+	--initialize table
+	setup(t)
+	
+	--initialize cairo context
+	cairo_save(cr)
+	cairo_translate(cr,t.xc,t.yc)
+	cairo_set_line_join (cr, CAIRO_LINE_JOIN_ROUND)
+	cairo_set_line_cap (cr, CAIRO_LINE_CAP_ROUND)
 
-        -- Now bring it all together
-        local layout = wibox.layout.align.horizontal()
-        layout:set_left(left_layout)
-        layout:set_right(right_layout)
-        layout:set_middle(middle_layout)
+	--get value
+	local value = 0
+	if t.name ~="" then
+		value = tonumber(conky_parse(string.format('${%s %s}', t.name, t.arg)))
+	else
+		value = tonumber(t.arg)
+	end
+	if value==nil then value =0 end
 
-        awful.titlebar(c):set_widget(layout)
-    end
-end)
+	--initialize sectors
+	--angle of a sector :
+	local angleA = ((t.end_angle-t.start_angle)/t.sectors)*math.pi/180
+	--value of a sector : 
+	local valueA = t.max/t.sectors
+	--first angle of a sector : 
+	local lastAngle = t.start_angle*math.pi/180
 
-client.connect_signal("focus", function(c) c.border_color = beautiful.border_focus end)
-client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
--- }}}
 
-awful.util.spawn_with_shell("xcompmgr &")
-awful.util.spawn_with_shell("pkill -HUP conky")
-awful.util.spawn_with_shell("conky &")
+	local function draw_sector(type_arc,angle0,angle,valpc, idx)
+	 
+		--this function draws a portion of arc
+	 	--type of arc, angle0 = strating angle, angle= angle of sector,
+	 	--valpc = percentage inside the sector, idx = sctor number #
+	 	local tcolor
+		 if type_arc=="bg" then 		--background
+			 if valpc==1 then return end
+		 	tcolor=t.bg_colour1
+		 elseif type_arc=="fg" then	--foreground
+		 	if valpc==0 then return end
+		 	tcolor=t.fg_colour1
+		 elseif type_arc=="bd" then	--border
+		 	tcolor=t.bd_colour1
+		 end 
+
+		--angles equivalents to gap_sector
+		local ext_delta=math.atan(t.gap_sectors/(2*t.radius))
+		local int_delta=math.atan(t.gap_sectors/(2*t.int_radius))
+
+		--angles of arcs
+		local ext_angle=(angle-ext_delta*2)*valpc
+		local int_angle=(angle-int_delta*2)*valpc
+
+		--define colours to use for this sector
+		if #tcolor==1 then 
+			--plain color
+			local vR,vG,vB,vA = rgba_to_r_g_b_a(tcolor[1])
+			cairo_set_source_rgba(cr,vR+tcolor[1].dR*idx,
+									vG+tcolor[1].dG*idx,
+									vB+tcolor[1].dB*idx,
+									vA+tcolor[1].dA*idx	)
+		else
+			--radient color
+			local pat=cairo_pattern_create_radial(0,0,t.int_radius,0,0,t.radius)
+			for i=1, #tcolor do
+				local vP,vR,vG,vB,vA = tcolor[i][1], rgba_to_r_g_b_a(tcolor[i])
+				cairo_pattern_add_color_stop_rgba (pat, 
+									vP+tcolor[i].dP*idx,
+									vR+tcolor[i].dR*idx,
+									vG+tcolor[i].dG*idx,
+									vB+tcolor[i].dB*idx,
+									vA+tcolor[i].dA*idx	)
+			end
+			cairo_set_source (cr, pat)
+			cairo_pattern_destroy(pat)
+		end
+
+		--start drawing
+		 cairo_save(cr)
+		--x axis is parrallel to start of sector
+		cairo_rotate(cr,angle0-math.pi/2)
+
+		local ri,re = t.int_radius ,t.radius
+
+		--point A 
+		local angle_a
+	
+		if t.cap == "p" then 
+			angle_a = int_delta
+			if t.inverse_arc and type_arc ~="bg" then
+				angle_a = angle-int_angle-int_delta
+			end
+			if not(t.inverse_arc) and type_arc =="bg" then
+				angle_a = int_delta+int_angle
+			end
+		else --t.cap=="r"
+			angle_a = ext_delta
+			if t.inverse_arc and type_arc~="bg" then
+				angle_a = angle-ext_angle-ext_delta
+			end
+			if not(t.inverse_arc) and type_arc=="bg" then
+				angle_a = ext_delta+ext_angle
+			end
+		end
+		local ax,ay = ri*math.cos(angle_a),ri*math.sin(angle_a)
+
+
+		--point B
+		local angle_b = ext_delta
+		if t.cap == "p" then 
+			if t.inverse_arc and type_arc ~="bg" then
+				angle_b = angle-ext_angle-ext_delta
+			end
+			if not(t.inverse_arc) and type_arc=="bg" then
+				angle_b = ext_delta+ext_angle
+			end
+		else
+			if t.inverse_arc and type_arc ~="bg" then
+				angle_b = angle-ext_angle-ext_delta
+			end
+			if not(t.inverse_arc) and type_arc=="bg" then
+				angle_b = ext_delta+ext_angle
+			end
+		end
+		local bx,by = re*math.cos(angle_b),re*math.sin(angle_b)
+
+		-- EXTERNAL ARC B --> C
+		local b0,b1
+		if t.inverse_arc then
+			if type_arc=="bg" then
+				b0,b1= ext_delta, angle-ext_delta-ext_angle
+			else
+				b0,b1= angle-ext_angle-ext_delta, angle-ext_delta
+			end
+		else
+			if type_arc=="bg" then
+				b0,b1= ext_delta+ext_angle, angle-ext_delta
+			else
+				b0,b1= ext_delta, ext_angle+ext_delta
+			end
+		end
+		
+		---POINT D
+		local angle_c, angle_d
+		if t.cap == "p" then 
+			angle_d = angle-int_delta
+			if t.inverse_arc and type_arc=="bg" then
+				angle_d = angle-int_delta-int_angle	
+			end
+			if not(t.inverse_arc) and type_arc~="bg" then
+				angle_d=int_delta+int_angle
+			end
+		else
+			angle_d = angle-ext_delta
+			if t.inverse_arc and type_arc=="bg" then
+				angle_d =angle-ext_delta-ext_angle
+			end
+			if not(t.inverse_arc) and type_arc~="bg" then
+				angle_d = ext_angle+ext_delta
+			end
+		end
+		local dx,dy = ri*math.cos(angle_d),ri*math.sin(angle_d)
+		
+		-- INTERNAL ARC D --> A
+		local d0,d1
+		if t.cap=="p" then	
+			if t.inverse_arc then	
+				if type_arc=="bg" then
+					d0,d1= angle-int_delta-int_angle,int_delta
+				else
+					d0,d1= angle-int_delta, angle- int_angle-int_delta
+				end
+			else
+				if type_arc=="bg" then
+					d0,d1= angle-int_delta, int_delta+int_angle
+				else
+					d0,d1= int_delta+int_angle, int_delta
+				end
+			end
+		else
+			if t.inverse_arc then	
+				if type_arc=="bg" then	
+					d0,d1= angle-ext_delta-ext_angle,ext_delta
+				else
+					d0,d1= angle-ext_delta, angle- ext_angle-ext_delta
+				end
+			else
+				if type_arc=="bg" then	
+					d0,d1= angle-ext_delta,ext_delta+ext_angle
+				else	
+					d0,d1= ext_angle+ext_delta, ext_delta
+				end
+			end			
+		end
+			
+		--draw sector
+		cairo_move_to(cr,ax,ay)
+		cairo_line_to(cr,bx,by)
+		cairo_arc(cr,0,0,re,b0,b1)
+		cairo_line_to(cr,dx,dy) 
+		cairo_arc_negative(cr,0,0,ri,d0,d1)
+		 cairo_close_path (cr);
+
+		--stroke or fill sector
+		 if type_arc=="bd" then
+		 	cairo_set_line_width(cr,t.border_size)
+		 	cairo_stroke(cr)
+		 else
+			 cairo_fill(cr)
+		 end
+
+		 cairo_restore(cr)
+
+	 end
+	--draw sectors
+	local n0,n1,n2 = 1,t.sectors,1
+	if t.inverse_arc then n0,n1,n2 = t.sectors,1,-1 end
+	local index = 0
+	for i = n0,n1,n2 do 
+		index = index +1
+		local valueZ=1
+		local cstA, cstB = (i-1),i
+		if t.inverse_arc then cstA,cstB = (t.sectors-i), (t.sectors-i+1) end
+		
+		if value>valueA *cstA and value<valueA*cstB then
+			if not t.fill_sector then
+				valueZ = (value-valueA*cstA)/valueA
+			end
+		else
+			if value<valueA*cstB then valueZ=0 end
+		end
+		
+		local start_angle= lastAngle+(i-1)*angleA
+		if t.foreground ~= false then 
+			draw_sector("fg",start_angle,angleA,valueZ, index)
+		end
+		if t.background ~= false then 
+			draw_sector("bg",start_angle,angleA,valueZ, i)
+		end
+		if t.border_size>0 then draw_sector("bd",start_angle,angleA,1, i) end
+	end
+
+	cairo_restore(cr)
+end
+
+
+--[[END OF RING-SECTORS WIDGET]]
