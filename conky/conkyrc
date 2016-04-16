@@ -9,7 +9,7 @@ background no
 use_xft yes
 
 # Xft font when Xft is enabled
-xftfont DejaVu Sans Condensed:size=8
+xftfont Terminus:size=9
 
 # Text alpha when using Xft
 xftalpha 0.8
@@ -30,6 +30,7 @@ own_window yes
 #The override option makes your window out of control of your window manager
 #own_window_type normal 
 own_window_type desktop 
+#own_window_type override
 
 #To enable real transparency
 own_window_transparent yes
@@ -108,7 +109,7 @@ TEXT
 
 
 
-${goto 70}${time %e} ${time %b}${alignc}${image /home/nsm09/scripts/resources/ALLogo.png -p 112,20-s 64x64}${goto 180}${time %l}:${time %M}:${time %S}
+${goto 70}${time %e} ${time %b}${alignc}${image /home/nsm09/scripts/resources/ALLogo.png -p 112,20-s 64x64}${goto 173}${time %l}:${time %M}:${time %S}
 ${goto 80}${time %a}${goto 190}${time %p}
 
 
@@ -120,7 +121,6 @@ ${alignc}${color slate grey}WEATHER: ${color }${execi 300 /home/nsm09/scripts/we
 ${alignc}${color slate grey}KERNEL:${color }$kernel  ${color slate grey}MACHINE TYPE: ${color }${machine}
 ${alignc}${color slate grey}HOSTNAME: ${color }$nodename ${color slate grey}USER: ${color }${uid_name ${execi 300 id -u}} 
 ${alignc}${color slate grey}PKG UPD: ${color }${texeci 300 pacman -Q -u | wc -l} ${color slate grey}AUR PKG UPD: ${color }${texeci 300 packer --auronly --quickcheck | wc -l} 
-${alignc}${color slate grey}HOSTNAME: ${color }$nodename ${color slate grey}USER: ${color }${uid_name ${execi 300 id -u}} 
 ${alignc}${color slate grey}UP TIME: ${color }$uptime 
 ${alignc}${color slate grey}TOTAL CPU USAGE:${color } ${cpu cpu0}%
 ${alignc}${cpugraph 20,130 gray gray}
@@ -131,6 +131,14 @@ ${alignc}${cpugraph 20,130 gray gray}
 
 ${goto 10}${cpu cpu1}%${goto 80}${cpu cpu2}%${goto 150}${cpu cpu3}%${goto 220}${cpu cpu4}%
 ${goto 10}${freq_g 1}GHz${goto 80}${freq_g 2}GHz${goto 150}${freq_g 3}GHz${goto 220}${freq_g 4}GHz
+
+
+
+
+
+${goto 10}${cpu cpu5}%${goto 80}${cpu cpu6}%${goto 150}${cpu cpu7}%${goto 220}${cpu cpu8}%
+${goto 10}${freq_g 1}GHz${goto 80}${freq_g 2}GHz${goto 150}${freq_g 3}GHz${goto 220}${freq_g 4}GHz
+
 ${alignc}${color slate grey}MEM:${color }$memperc%,$memmax 
 ${alignc}${memgraph 20,130 gray gray}
 ${color slate grey}ROOT: ${color }${fs_used /}/${fs_size /}${alignr}${color slate grey}HOME: ${color }${fs_used /home}/${fs_size /home}
