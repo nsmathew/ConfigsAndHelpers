@@ -1,4 +1,3 @@
-
 # Added entries from Graysky, https://raw.github.com/graysky2/configs/master/dotfiles/.conkyrc
 # Original lua rings script from http://wlourf.deviantart.com/art/Rings-And-Sectors-Conky-1-1-174493100? 
 
@@ -9,13 +8,13 @@ background no
 use_xft yes
 
 # Xft font when Xft is enabled
-xftfont Terminus:size=9
+xftfont Terminus:size=9.5
 
 # Text alpha when using Xft
-xftalpha 0.8
+xftalpha 0.5
 
 # Print everything to console?
-# out_to_console no
+ out_to_console no
 
 # Update interval in seconds
 update_interval 2.0
@@ -100,8 +99,8 @@ use_spacer yes
 default_bar_size 100
 
 #Lua Load
-lua_load /home/nsm09/scripts/rings.lua
-lua_draw_hook_pre conky_main_rings
+#lua_load /home/nsm09/scripts/rings.lua
+#lua_draw_hook_pre conky_main_rings
 
 # stuff after 'TEXT' will be formatted on screen
 
@@ -109,39 +108,48 @@ TEXT
 
 
 
-${goto 70}${time %e} ${time %b}${alignc}${image /home/nsm09/scripts/resources/ALLogo.png -p 112,20-s 64x64}${goto 173}${time %l}:${time %M}:${time %S}
-${goto 80}${time %a}${goto 190}${time %p}
 
+
+${alignc}${image /home/nsm09/scripts/resources/ALLogo.png -p 108,40 -s 64x64}
 
 
 ${alignc}Arch Linux
-${alignc}${color slate grey}WEATHER: ${color }${execi 300 /home/nsm09/scripts/weatherforconky.sh "Singapore"}
-#${alignc}${color slate grey}WEATHER: ${color }${execi 300 /home/nsm09/scripts/weatherforconky.sh "Mangalore"}
-#${alignc}${color slate grey}WEATHER: ${color }${execi 300 /home/nsm09/scripts/weatherforconky.sh "Delhi"}
-${alignc}${color slate grey}KERNEL:${color }$kernel  ${color slate grey}MACHINE TYPE: ${color }${machine}
-${alignc}${color slate grey}HOSTNAME: ${color }$nodename ${color slate grey}USER: ${color }${uid_name ${execi 300 id -u}} 
-${alignc}${color slate grey}PKG UPD: ${color }${texeci 300 pacman -Q -u | wc -l} ${color slate grey}AUR PKG UPD: ${color }${texeci 300 packer --auronly --quickcheck | wc -l} 
-${alignc}${color slate grey}UP TIME: ${color }$uptime 
-${alignc}${color slate grey}TOTAL CPU USAGE:${color } ${cpu cpu0}%
-${alignc}${cpugraph 20,130 gray gray}
 
+${color slate grey}WEATHER: ${color }${texeci 300 /home/nsm09/scripts/weatherforconky.sh "Singapore"}
+#${alignc}${color slate grey}WEATHER: ${color }${texeci 300 /home/nsm09/scripts/weatherforconky.sh "Mangalore"}
+#${alignc}${color slate greys}WEATHER: ${color }${texeci 300 /home/nsm09/scripts/weatherforconky.sh "Delhi"}
+${color slate grey}KERNEL:${color }${alignr}$kernel
+${color slate grey}MACHINE TYPE: ${color }${alignr}${machine}
+${color slate grey}HOSTNAME: ${color }${alignr}$nodename
+${color slate grey}USER: ${color }${alignr}${uid_name ${execi 300 id -u}}
+${color slate grey}PKG UPD: ${color }${alignr}${texeci 120 pacman -Q -u | wc -l} 
+${color slate grey}AUR PKG UPD: ${color }${alignr}${texeci 120 cower -u | wc -l} 
+${color slate grey}UP TIME: ${color }${alignr}$uptime
 
+${alignc}${color slate grey}TOTAL CPU USAGE:${color } ${cpu cpu0}%  
+${alignc}${cpugraph 20,180 ffffff 666464 }
+${alignc}${color slate grey}MEM:${color }$memperc%,$memmax
+${alignc}${memgraph 20,180 ffffff 666464 }
+${alignc}${color slate grey}DISK I/O:${color }${diskio /dev/sda}
+${alignc}${diskiograph /dev/sda 20,180 ffffff 666464 -l}
 
+${color slate grey}SOUND: ${color }${alignr}${texeci 120 ~/scripts/pawrap.sh CARD},${texeci 10 ~/scripts/pawrap.sh VOL}
+${color slate grey}BATTERY: ${color }${alignr}${battery_percent}%
+${color slate grey}CPU TEMP: ${color }${alignr}${acpitemp}C
+${color slate grey}PROCESSES: ${color }${alignr}${processes}
+${color slate grey}NVIDIA CARD: ${color }${alignr}${texeci 300 cat /proc/acpi/bbswitch | awk '{print $2}'}
+${alignc}${color slate grey}WIFI: ${color }${wireless_essid}${color}
+${alignc}${wireless_link_bar 7,180 wlp3s0}
 
-
-${goto 10}${cpu cpu1}%${goto 80}${cpu cpu2}%${goto 150}${cpu cpu3}%${goto 220}${cpu cpu4}%
-${goto 10}${freq_g 1}GHz${goto 80}${freq_g 2}GHz${goto 150}${freq_g 3}GHz${goto 220}${freq_g 4}GHz
-
-
-
-
-
-${goto 10}${cpu cpu5}%${goto 80}${cpu cpu6}%${goto 150}${cpu cpu7}%${goto 220}${cpu cpu8}%
-${goto 10}${freq_g 1}GHz${goto 80}${freq_g 2}GHz${goto 150}${freq_g 3}GHz${goto 220}${freq_g 4}GHz
-
-${alignc}${color slate grey}MEM:${color }$memperc%,$memmax 
-${alignc}${memgraph 20,130 gray gray}
 ${color slate grey}ROOT: ${color }${fs_used /}/${fs_size /}${alignr}${color slate grey}HOME: ${color }${fs_used /home}/${fs_size /home}
 ${fs_bar 7,100 /}${alignr}${fs_bar 7,100 /home}
-${color slate grey}NET-UP: ${color }${upspeedf eno16777736}KiB ${alignr}${color slate grey}NET-DW: ${color }${downspeedf eno16777736}KiB${color}
-${upspeedgraph eno16777736 20,100 gray gray}${alignr}${downspeedgraph eno16777736 20,100 gray}
+
+${color slate grey}NET-UP: ${color }${upspeedf wlp3s0}KiB ${alignr}${color slate grey}NET-DW: ${color }${downspeedf wlp3s0}KiB${color}
+${upspeedgraph wlp3s0 20,100  ffffff 666464 }${alignr}${downspeedgraph wlp3s0 20,100  ffffff 666464 }
+
+${if_running spotify}${voffset -2}
+${alignc}SPOTIFY
+${color slate grey}Title: ${color}${alignr}${texeci 5 ~/scripts/spotify_get_info TITLE}${color}
+${color slate grey}Artist: ${color}${alignr}${texeci 5 ~/scripts/spotify_get_info ARTIST}${color}
+${color slate grey}Album: ${color}${alignr}${texeci 5 ~/scripts/spotify_get_info ALBUM}${color}
+${endif}
