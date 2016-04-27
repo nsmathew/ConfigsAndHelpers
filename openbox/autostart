@@ -16,12 +16,21 @@
 #
 #xfce-mcs-manager &
 
-feh --bg-scale ./wall/SIoLm5X-arch-linux-wallpaper.png
+#Dual monitor layout
+/home/nsm09/scripts/dual_monitor.sh &
 
-xcompmgr &
+#Desktop Wallpaper
+feh --bg-scale /home/nsm09/wall/SIoLm5X-arch-linux-wallpaper.png
 
+#Compositor
+compton -b -c -f --inactive-dim 0.3 &
+
+#Conky
 conky &
 
+#PAnel
 xfce4-panel &
 
+#WiFi Tray Icon
 wicd-gtk --tray
+
