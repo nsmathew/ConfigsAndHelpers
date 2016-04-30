@@ -1,8 +1,11 @@
 #! /usr/bin/bash
 #Wrapper script for Pulse Audio
+#Get current volume
 #Increase/Decrease Volume
 #Toggle Mute
 #Read Current Volume Level
+#Get current Card in use forOutput
+#Set Active Output
 
 #Global Variables
 CURR_VOL=
@@ -11,7 +14,7 @@ SINK=
 CARD_CNT=
 CARD_NAME=
 
-#Helper to get sink number
+#Helper to get active sink number
 get_active_sink_number(){
 	SINK=`pacmd list-sinks | grep -n '*' | awk 'BEGIN {FS=":"} {print $3}' | sed 's/ //'`
 }
@@ -42,7 +45,7 @@ get_volume_level(){
 	echo $CURR_VOL
 }
 
-#CARD NAME
+#CARD NAME of active sink
 get_card_name(){
 	TEMP_LINE=`pacmd list-sinks | grep -n '*' | awk 'BEGIN {FS=":"} {print $1}'`
 	TEMP_LINE=`expr $TEMP_LINE + 36`
@@ -72,10 +75,12 @@ set_active_sink(){
 	echo "**Active SINK Index: "$SINK
 	echo "Enter Index Numer of SINK to change the default sink: "
 	read IN_SINK
-	re='^[0-9]+$'
+	#Validate input is a number
+	re='^[0-9]+$'   
 	if ! [[ $IN_SINK =~ $re ]] ; then
 		echo "Error: Not a number, exiting." >&2; exit 1
 	fi
+	#Validate if input is within the sink index range
 	if [ $IN_SINK -ge $CARD_CNT ] 
 	then
 		echo "Error: Not a valid SINK number, exiting." >&2; exit 1
@@ -89,6 +94,12 @@ set_active_sink(){
 #INC
 increase_volume(){
 	get_volume_level
+	#IF mute then unmute
+	if [ $MUTE_STATUS == "M" ]
+	then
+		toggle_volume_mute
+		get_volume_level
+	fi
 	VOL_NUM=`echo $CURR_VOL | sed 's/%//'`
 	NEW_VOL=`expr $VOL_NUM + $1`
 	if [ $NEW_VOL -gt 100 ]
@@ -102,6 +113,12 @@ increase_volume(){
 #DEC
 decrease_volume(){
 	get_volume_level
+	#IF mute then unmute
+	if [ $MUTE_STATUS == "M" ]
+	then
+		toggle_volume_mute
+		get_volume_level
+	fi
 	VOL_NUM=`echo $CURR_VOL | sed 's/%//'`
 	NEW_VOL=`expr $VOL_NUM - $1`
 	if [ $NEW_VOL -gt 100 ]
@@ -126,9 +143,9 @@ toggle_volume_mute(){
 
 if [ ! -n "$1" ]
 then
-	echo "Usage: `basename $0` VOL|INC|DEC|MUTE_TOG [INCR %AGE|DEC %AGE]"
-	exit 1
+	echo "Usage: `basename $0` VOL|INC|DEC|MUTE_TOG [INCR %AGE|DEC %AGE]|CARD|SET_ACTIVE" >&2; exit 1
 fi  
+#Store active sink number upfront
 get_active_sink_number
 case $1 in
 	VOL) get_volume_level ;;
@@ -137,5 +154,6 @@ case $1 in
 	MUTE_TOG) toggle_volume_mute;;
 	CARD) get_card_name;;
 	SET_ACTIVE) set_active_sink;;
+	*) echo "Usage: `basename $0` VOL|INC %|DEC %|MUTE_TOG|CARD|SET_ACTIVE" >&2; exit 1
 esac
 exit 0
