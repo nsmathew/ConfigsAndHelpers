@@ -158,7 +158,7 @@
     <!-- (Top|Bottom)(Left|Right|)|Top|Bottom|Left|Right|Floating -->
     <floatingX>0</floatingX>
     <floatingY>0</floatingY>
-    <noStrut>yes</noStrut>
+    <noStrut>no</noStrut>
     <stacking>Above</stacking>
     <!-- 'Above', 'Normal', or 'Below' -->
     <direction>Horizontal</direction>
@@ -173,8 +173,16 @@
   </dock>
   <keyboard>
     <chainQuitKey>C-g</chainQuitKey>
-    <keybind key="C-A-Left">
-      <action name="GoToDesktop"/>
+    <keybind key="A-Tab">
+      <action name="NextWindow"/>
+    </keybind>
+    <keybind key="A-S-Tab">
+      <action name="PreviousWindow"/>
+    </keybind>
+    <keybind key="S-W-r">
+      <action name="Execute">
+        <command>openbox --reconfigure</command>
+      </action>
     </keybind>
     <keybind key="S-W-Left">
       <action name="SendToDesktopLeft"/>
@@ -190,14 +198,6 @@
       </action>
       <action name="MoveToEdgeEast"/>
       <action name="MoveToEdgeEast"/>
-    </keybind>
-    <keybind key="W-C-Home">
-      <action name="MoveToCenter"/>
-      <action name="Iconify"/>
-      <action name="MoveResizeTo">
-        <width>70%</width>
-        <height>70%</height>
-      </action>
     </keybind>
     <keybind key="W-Up">
       <action name="UnmaximizeFull"/>
@@ -251,26 +251,13 @@
         <command>xfce4-terminal</command>
       </action>
     </keybind>
-    <keybind key="C-A-Right">
-      <action name="GoToDesktop"/>
-    </keybind>
-    <keybind key="C-A-Up">
-      <action name="GoToDesktop"/>
-    </keybind>
-    <keybind key="C-A-Down">
-      <action name="GoToDesktop"/>
-    </keybind>
     <keybind key="S-A-Left">
       <action name="SendToDesktop"/>
     </keybind>
     <keybind key="S-A-Right">
-      <action name="SendToDesktop"/>
-    </keybind>
-    <keybind key="S-A-Up">
-      <action name="SendToDesktop"/>
-    </keybind>
-    <keybind key="S-A-Down">
-      <action name="SendToDesktop"/>
+      <action name="SendToDesktop">
+        <desktop>2</desktop>
+      </action>
     </keybind>
     <keybind key="XF86AudioRaiseVolume">
       <action name="Execute">
@@ -324,30 +311,6 @@
       <action name="ShowMenu">
         <menu>client-menu</menu>
       </action>
-    </keybind>
-    <keybind key="A-Tab">
-      <action name="NextWindow"/>
-    </keybind>
-    <keybind key="A-S-Tab">
-      <action name="PreviousWindow"/>
-    </keybind>
-    <keybind key="C-A-Tab">
-      <action name="NextWindow">
-        <panels>yes</panels>
-        <desktop>yes</desktop>
-      </action>
-    </keybind>
-    <keybind key="W-S-Right">
-      <action name="DirectionalCycleWindows"/>
-    </keybind>
-    <keybind key="W-S-Left">
-      <action name="DirectionalCycleWindows"/>
-    </keybind>
-    <keybind key="W-S-Up">
-      <action name="DirectionalCycleWindows"/>
-    </keybind>
-    <keybind key="W-S-Down">
-      <action name="DirectionalCycleWindows"/>
     </keybind>
   </keyboard>
   <mouse>
@@ -804,11 +767,11 @@
 
   # end of the example
 -->
-  <application name="oblogout">
-    <position force="yes">
-      <monitor>1</monitor>
-    </position>
-    <fullscreen>yes</fullscreen>
-  </application>
+    <application name="oblogout">
+      <position force="yes">
+        <monitor>1</monitor>
+      </position>
+      <fullscreen>yes</fullscreen>
+    </application>
   </applications>
 </openbox_config>
