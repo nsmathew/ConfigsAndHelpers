@@ -1,0 +1,16 @@
+Create a live  version of the ArchLinux in a USB
+Change the boot order and login boot from USB
+Connect to Wifi using wifi-menu command
+Get the list of partitions using fdisk -l
+Mount the partitions as below. Partitions used are based on the current installation
+# mkdir /mnt/root                       -- Create directory for mounting
+# mount /dev/sda3 /mnt/root             -- mount root partition
+# mount /dev/sda4 /mnt/root/home        -- mount home partition     
+# mount -t vfat /dev/sdb3 /mnt/root/boot --mount the EFI boot partition which is in FAT format
+chroot into the mounted system
+# arch-chroot /mnt/root
+run pacman to update system and linux kernel
+# pacman -Syyu linux
+# exit
+# reboot
+Remove the USB stick after system shutsdown and boot into linux to chekc if it works.
